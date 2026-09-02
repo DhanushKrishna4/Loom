@@ -61,7 +61,7 @@ interface Result {
 // the engine unchanged, the measurement worthless. The correct protocol is one
 // runtime per tab, reload between, and that only produces a comparison if the
 // numbers survive the reload.
-const STORE_KEY = 'nano-infer-bench';
+const STORE_KEY = 'loom-bench';
 const results: Record<string, Result> = (() => {
   try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}') as Record<string, Result>; }
   catch { return {}; }
@@ -142,7 +142,7 @@ function record(name: string, r: Result): void {
 function renderResults(): void {
   const body = $('results').querySelector('tbody');
   if (!body) return;
-  body.innerHTML = ['nano-infer', 'transformers.js']
+  body.innerHTML = ['Loom', 'transformers.js']
     .filter((k) => results[k])
     .map((k) => {
       const v = results[k];
@@ -158,17 +158,17 @@ function renderResults(): void {
 }
 
 function analyse(): void {
-  const a = results['nano-infer'];
+  const a = results['Loom'];
   const b = results['transformers.js'];
   if (!a || !b) return;
   const ratio = a.tps / b.tps;
-  const faster = ratio >= 1 ? 'nano-infer' : 'transformers.js';
+  const faster = ratio >= 1 ? 'Loom' : 'transformers.js';
   const factor = ratio >= 1 ? ratio : 1 / ratio;
 
   const unstable = (a.spread ?? 0) > 0.2;
   const spreadPct = ((a.spread ?? 0) * 100).toFixed(0);
   $('analysis').innerHTML = `
-    ${unstable ? `<p class="status error">The two nano-infer passes differed by
+    ${unstable ? `<p class="status error">The two Loom passes differed by
       ${spreadPct}%. That is the machine, not the engine —
       treat the ratio below as meaningless until a re-run reproduces itself.</p>` : ''}
     <p><strong>${faster} is ${factor.toFixed(2)}x faster at decoding</strong> —
@@ -177,7 +177,7 @@ function analyse(): void {
     <ul>
       <li><strong>Weight format meets the platform.</strong> q4f16 dequantises into
         fp16 and multiplies in float. wasm has no native fp16 arithmetic, so that
-        path is emulated. nano-infer quantises activations to int8 and keeps the
+        path is emulated. Loom quantises activations to int8 and keeps the
         inner loop integer, which maps onto <code>i16x8.extmul</code> and
         <code>i32x4.extadd_pairwise</code> — instructions wasm actually has. This
         is a platform-fit difference, not evidence that one codebase is better
@@ -190,18 +190,18 @@ function analyse(): void {
         several times faster with four threads on a host that can set those
         headers; that is a real advantage it cannot use here.</li>
       <li><strong>Prefill.</strong> ONNX Runtime batches the whole prompt into one
-        matmul; nano-infer still loops one position at a time, paying its weight
+        matmul; Loom still loops one position at a time, paying its weight
         unpack per token instead of per prompt. Measured here:
         ${a.prefillS.toFixed(2)} s against ${b.prefillS.toFixed(2)} s. This is the
         one gap with a fix already designed and not yet built, and it is the place
-        nano-infer is genuinely behind.</li>
+        Loom is genuinely behind.</li>
       <li><strong>Generality.</strong> ORT executes an arbitrary graph and cannot
-        assume the shape of what it is running. nano-infer is 24 hardcoded Qwen2
+        assume the shape of what it is running. Loom is 24 hardcoded Qwen2
         layers with a fused kernel per quantisation format. Specialising is worth
         a lot, and it is also why this engine runs exactly one architecture.</li>
     </ul>
     <p class="hint">Load times are not comparable and are shown only for context:
-      nano-infer parses a GGUF, transformers.js fetches and compiles an ONNX graph,
+      Loom parses a GGUF, transformers.js fetches and compiles an ONNX graph,
       and the two are cached by different mechanisms. Both runs used greedy
       decoding, the same prompt, and the same token budget.</p>`;
 }
@@ -247,7 +247,7 @@ $<HTMLButtonElement>('runOurs').addEventListener('click', async () => {
     const tokens = engine.tokenize($<HTMLInputElement>('prompt').value, false);
     const n = parseInt($<HTMLInputElement>('ntok').value, 10);
 
-    status('nano-infer: prefill…');
+    status('Loom: prefill…');
     const p0 = performance.now();
     engine.prefill(tokens);
     const prefillS = (performance.now() - p0) / 1000;
@@ -286,17 +286,17 @@ $<HTMLButtonElement>('runOurs').addEventListener('click', async () => {
     const worst = runs.reduce((a, b) => (a.tps <= b.tps ? a : b));
     const spread = (best.tps - worst.tps) / best.tps;
 
-    record('nano-infer', {
+    record('Loom', {
       loadS, prefillS, decodeS: best.secs, tps: best.tps, text, spread,
     });
     status(
-      `nano-infer: ${best.tps.toFixed(2)} tok/s` +
+      `Loom: ${best.tps.toFixed(2)} tok/s` +
       (spread > 0.2
         ? ` — but the two passes differed by ${(spread * 100).toFixed(0)}%, so this machine is not stable enough to benchmark on`
         : ` (two passes within ${(spread * 100).toFixed(0)}%)`),
     );
   } catch (e) {
-    status(`nano-infer failed: ${msg(e)}`, true);
+    status(`Loom failed: ${msg(e)}`, true);
   } finally {
     $<HTMLButtonElement>('runOurs').disabled = false;
   }

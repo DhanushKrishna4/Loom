@@ -186,9 +186,11 @@ a:hover { color: var(--fg); }
 h1.wordmark {
   font-family: var(--mono);
   font-weight: 600;
-  font-size: clamp(2.5rem, 7.5vw, 4.6rem);
+  /* Four characters where there were ten: the size roughly doubles to keep the
+     same optical weight against the matrix beside it. */
+  font-size: clamp(3.5rem, 11vw, 7rem);
   line-height: .95;
-  letter-spacing: -.055em;
+  letter-spacing: -.045em;
   margin: 0;
   color: var(--fg);
 }

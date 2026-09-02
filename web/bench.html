@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>nano-infer — benchmark</title>
+<title>Loom — benchmark</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -9,7 +9,7 @@
 
 <nav class="topbar">
   <div class="topbar-inner">
-  <a class="brand" href="./">nano-infer</a>
+  <a class="brand" href="./">Loom</a>
   <div class="topnav">
     <a href="./">Engine</a>
     <a href="https://github.com/DhanushKrishna4/LLM-inference-engine-in-WASM" target="_blank" rel="noopener">Source</a>
@@ -19,7 +19,7 @@
 
 <main>
   <header class="page-head">
-    <h1>nano-infer vs transformers.js</h1>
+    <h1>Loom vs transformers.js</h1>
     <p class="sub">Same model, same prompt, same decoding, same tab. transformers.js
       is loaded here for comparison only — it is not a dependency of the engine.</p>
   </header>
@@ -27,7 +27,7 @@
   <section class="card">
     <h2 data-n="01">What is being compared</h2>
     <table class="scales" id="setup">
-      <thead><tr><th>&nbsp;</th><th>nano-infer</th><th>transformers.js</th></tr></thead>
+      <thead><tr><th>&nbsp;</th><th>Loom</th><th>transformers.js</th></tr></thead>
       <tbody>
         <tr><td>model</td><td>Qwen2.5-0.5B-Instruct</td><td>Qwen2.5-0.5B-Instruct</td></tr>
         <tr><td>format</td><td>GGUF Q4_K_M</td><td>ONNX q4f16</td></tr>
@@ -50,7 +50,7 @@
       <input type="number" id="ntok" value="24" min="4" max="128">
     </label>
     <div class="row">
-      <button id="runOurs">1 · nano-infer</button>
+      <button id="runOurs">1 · Loom</button>
       <button id="runTheirs">2 · transformers.js</button>
     </div>
     <p class="hint">Run one, <strong>reload the page</strong>, then run the other.

@@ -1,4 +1,4 @@
-# nano-infer
+# Loom
 
 An LLM inference engine written from scratch in Rust, compiled to WebAssembly,
 running a small language model entirely in the browser. No backend, no ML
@@ -578,10 +578,10 @@ Measured on a **loaded** 8 GB machine (see the caveat below):
 
 | | load | prefill | decode | tok/s |
 |---|---|---|---|---|
-| nano-infer | 1.0 s | 0.45 s | 2.08 s | 11.5 – 17.8 |
+| Loom | 1.0 s | 0.45 s | 2.08 s | 11.5 – 17.8 |
 | transformers.js (ONNX q4f16) | 44.3 s | 1.74 s | 15.55 s | 1.48 |
 
-**nano-infer is roughly 8–12x faster at decoding here.** The range is honest: the
+**Loom is roughly 8–12x faster at decoding here.** The range is honest: the
 host was swapping, and the same build measured anywhere from 4.2 to 17.8 tok/s in
 the browser across the session. The stable reference is the Node harness on the
 same wasm: 16.2 / 18.5 / 17.2 tok/s across three consecutive runs.
@@ -590,7 +590,7 @@ Where the gap comes from, most likely first:
 
 - **Weight format meets the platform.** q4f16 dequantises into fp16 and
   multiplies in float; wasm has no native fp16 arithmetic, so that is emulated.
-  nano-infer quantises activations to int8 and keeps the inner loop integer,
+  Loom quantises activations to int8 and keeps the inner loop integer,
   which maps onto `i16x8.extmul` and `i32x4.extadd_pairwise` — instructions wasm
   actually has. A platform-fit difference, not evidence of better code.
 - **Single-threaded is deployment-accurate, not a handicap imposed for effect.**
@@ -598,10 +598,10 @@ Where the gap comes from, most likely first:
   cross-origin isolation, which needs COOP/COEP headers — and GitHub Pages
   cannot set them. Neither engine gets threads where this ships. transformers.js
   would be several times faster with four threads somewhere that can.
-- **Prefill.** ORT batches the whole prompt into one matmul; nano-infer still
-  loops one position at a time. This is the one place nano-infer is genuinely
+- **Prefill.** ORT batches the whole prompt into one matmul; Loom still
+  loops one position at a time. This is the one place Loom is genuinely
   behind, and the fix is designed and unbuilt.
-- **Generality.** ORT executes an arbitrary graph. nano-infer is 24 hardcoded
+- **Generality.** ORT executes an arbitrary graph. Loom is 24 hardcoded
   Qwen2 layers with a fused kernel per format. Specialising is worth a lot, and
   it is also why this engine runs exactly one architecture.
 
@@ -616,7 +616,7 @@ twice:
   version counted ~13 callbacks for ~20 tokens and reported transformers.js as
   1.5x slower than it was. Counting the other side's tokens wrong is the easiest
   way to publish a flattering benchmark.
-- It runs nano-infer's decode **twice and reports the spread**, refusing to
+- It runs Loom's decode **twice and reports the spread**, refusing to
   headline a ratio when the passes disagree by more than 20%. A single timing
   cannot tell you whether it measured the engine or the machine — this page read
   15.21 and then 4.20 tok/s with no code change, on a host that had gone 6 GB
