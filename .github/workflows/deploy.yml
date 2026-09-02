@@ -24,6 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
+  BINARYEN: "132"
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -78,7 +79,16 @@ jobs:
       # before. Same self-test, opt'd binary.
       - name: Kernel self-test after wasm-opt
         run: |
-          sudo apt-get update && sudo apt-get install -y binaryen
+          # Pinned, NOT `apt-get install binaryen`: Ubuntu noble ships 108,
+          # which renumbers wasm-bindgen's exported externref table and produces
+          # a module that validates, instantiates in Node, passes the kernel
+          # self-test, and then throws RangeError in every browser. Local dev is
+          # on 132; CI must not be older than local.
+          curl -sSL https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN}/binaryen-version_${BINARYEN}-x86_64-linux.tar.gz \
+            | tar xz -C /opt
+          # Same step, so $GITHUB_PATH (which only affects later steps) is no use.
+          export PATH="/opt/binaryen-version_${BINARYEN}/bin:$PATH"
+          wasm-opt --version
           W=target/wasm32-unknown-unknown/release/nano_infer_wasmbench.wasm
           wasm-opt -O3 --enable-simd --enable-bulk-memory "$W" -o "$W.opt"
           node tools/wasm_bench.js "$W.opt"
@@ -108,7 +118,16 @@ jobs:
       # wasm-pack shells out to wasm-opt; without it the SIMD win from step 9 is
       # silently left on the floor.
       - name: Install binaryen
-        run: sudo apt-get update && sudo apt-get install -y binaryen
+        run: |
+          # Pinned, NOT `apt-get install binaryen`: Ubuntu noble ships 108,
+          # which renumbers wasm-bindgen's exported externref table and produces
+          # a module that validates, instantiates in Node, passes the kernel
+          # self-test, and then throws RangeError in every browser. Local dev is
+          # on 132; CI must not be older than local.
+          curl -sSL https://github.com/WebAssembly/binaryen/releases/download/version_${BINARYEN}/binaryen-version_${BINARYEN}-x86_64-linux.tar.gz \
+            | tar xz -C /opt
+          echo "/opt/binaryen-version_${BINARYEN}/bin" >> "$GITHUB_PATH"
+          "/opt/binaryen-version_${BINARYEN}/bin/wasm-opt" --version
 
       - name: Install frontend toolchain
         run: npm ci || npm install

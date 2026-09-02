@@ -21,6 +21,13 @@ echo "==> wasm-pack (release, wasm32, simd128, wasm-opt -O3)"
 wasm-pack build crates/wasm --target web --out-dir ../../web/pkg --release --no-pack
 
 RAW=web/pkg/nano_infer_wasm_bg.wasm
+
+# wasm-pack has just run wasm-opt over the module. An old wasm-opt rewrites the
+# exported externref table to point at the funcref table instead, and the result
+# validates, instantiates under Node, and dies on load in every browser. Nothing
+# else in this pipeline looks at the binary's structure, so check it here.
+node tools/check_wasm_tables.js "$RAW"
+
 GZ=$(gzip -9 -c "$RAW" | wc -c | tr -d ' ')
 printf '    %s: %d bytes raw, %d gzipped (budget %d, %d%% used)\n' \
     "$RAW" "$(wc -c < "$RAW")" "$GZ" "$BUDGET_GZIP" "$(( GZ * 100 / BUDGET_GZIP ))"
