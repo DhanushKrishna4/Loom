@@ -1,0 +1,14 @@
+[package]
+name    = "nano-infer-wasmbench"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Correctness and timing harness for the wasm build. Not shipped."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# no_std core, exactly as shipped.
+nano-infer-core = { path = "../core", default-features = false }

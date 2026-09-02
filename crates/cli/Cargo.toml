@@ -1,0 +1,15 @@
+[package]
+name    = "nano-infer-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Native driver for nano-infer-core. Debug numerics here, not in a browser."
+
+[[bin]]
+name = "nano-infer"
+path = "src/main.rs"
+
+[dependencies]
+# `default-features = true` here: the CLI is the one place we genuinely want std.
+nano-infer-core = { path = "../core" }

@@ -1,0 +1,21 @@
+/target
+**/*.rs.bk
+# Cargo.lock IS committed: this workspace ships binaries, so reproducible
+# dependency versions matter more than downstream flexibility.
+
+# Model weights are NEVER committed.  They are fetched from the HuggingFace CDN
+# at runtime and cached in IndexedDB (browser) / ./models (native CLI).
+*.gguf
+/models/
+/tools/reference/
+# NOTE: crates/core/src/quant/fixtures_generated.rs IS committed -- it is small
+# and it is the only proof our dequantisation matches ggml.
+*.npy
+
+# Frontend
+/node_modules/
+/dist/
+# wasm-pack output; regenerate with tools/build_web.sh
+/crates/wasm/pkg/
+# wasm-bindgen output; regenerate with tools/build_web.sh
+/web/pkg/

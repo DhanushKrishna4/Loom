@@ -1,0 +1,42 @@
+[package]
+name    = "nano-infer-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Format parsing and numerics for nano-infer. No wasm, no web, no ML crates."
+
+[features]
+default = ["std"]
+# `std` only buys us `std::error::Error` impls and float math helpers.  The crate
+# is written so that turning it off still compiles: that is what keeps the wasm
+# build small and keeps us honest about what actually needs the host.
+std = []
+# Compiles the f64 oracle implementations in `ops::reference`. On automatically
+# under `cfg(test)`; the CLI turns it on to cross-check real tensors. Never in
+# the wasm build.
+reference = []
+
+[dependencies]
+# The ONLY dependency, and it is here because `core` has no float math at all:
+# sqrt, exp, sin and cos all live in `std` because they lower to libm calls.
+# This is rust-lang's own port of MUSL's libm -- the same code `compiler_builtins`
+# vendors for wasm targets, so it is what we would link anyway.
+#
+# There is still no ML/tensor/quantisation dependency, and no `half`, `byteorder`,
+# `ndarray` or `nalgebra`. See README.
+libm = "0.2"
+
+[dev-dependencies]
+proptest = "1"
+# default-features = false drops the HTML/plotters reporting: we want the
+# measurement, not the charts, and it keeps the dependency tree small.
+criterion = { version = "0.5", default-features = false }
+
+[[bench]]
+name = "kernels"
+harness = false
+
+[lib]
+name = "nano_infer_core"
+path = "src/lib.rs"

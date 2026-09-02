@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>nano-infer — benchmark</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+
+<main>
+  <header>
+    <h1>nano-infer vs transformers.js</h1>
+    <p class="sub">Same model, same prompt, same decoding, same tab. transformers.js
+      is loaded here for comparison only — it is not a dependency of the engine.</p>
+  </header>
+
+  <section class="card">
+    <h2>What is being compared</h2>
+    <table class="scales" id="setup">
+      <thead><tr><th>&nbsp;</th><th>nano-infer</th><th>transformers.js</th></tr></thead>
+      <tbody>
+        <tr><td>model</td><td>Qwen2.5-0.5B-Instruct</td><td>Qwen2.5-0.5B-Instruct</td></tr>
+        <tr><td>format</td><td>GGUF Q4_K_M</td><td>ONNX q4f16</td></tr>
+        <tr><td>size on disk</td><td>469 MB</td><td>483 MB</td></tr>
+        <tr><td>runtime</td><td>hand-written Rust → wasm, SIMD128</td><td>ONNX Runtime Web, SIMD128</td></tr>
+        <tr><td>threads</td><td>1</td><td>1 (forced, for fairness)</td></tr>
+      </tbody>
+    </table>
+    <p class="hint">Not identical quantisations — no two runtimes share one. q4f16 is
+      the closest ONNX build by size and bits per weight, which is the fairest
+      match available rather than a perfect one.</p>
+  </section>
+
+  <section class="card">
+    <h2>Run</h2>
+    <label class="row small">prompt
+      <input type="text" id="prompt" class="grow" value="The capital of France is">
+    </label>
+    <label class="row small">tokens
+      <input type="number" id="ntok" value="24" min="4" max="128">
+    </label>
+    <div class="row">
+      <button id="runOurs">1 · nano-infer</button>
+      <button id="runTheirs">2 · transformers.js</button>
+    </div>
+    <p class="hint">Run one, <strong>reload the page</strong>, then run the other.
+      Two models at once is ~950 MB of wasm heap; on a machine that then swaps,
+      the second number measures paging rather than the engine. Results survive
+      the reload.</p>
+    <div id="machine" class="status"></div>
+    <div id="status" class="status"></div>
+    <progress id="bar" value="0" max="1" hidden></progress>
+  </section>
+
+  <section class="card">
+    <h2>Results</h2>
+    <table class="scales" id="results">
+      <thead><tr><th>&nbsp;</th><th>load</th><th>prefill</th><th>decode</th><th>tok/s</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="outputs" class="mono small"></div>
+    <div class="row"><button id="clearResults" class="ghost">Clear results</button></div>
+  </section>
+
+  <section class="card">
+    <h2>Where the gap comes from</h2>
+    <div id="analysis" class="small">
+      <p class="hint">Filled in once both have run.</p>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="bench.ts"></script>

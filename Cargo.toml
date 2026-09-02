@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members  = ["crates/core", "crates/cli", "crates/wasm", "crates/wasmbench"]
+# The wasm crate is deliberately NOT a default member: `cargo test` / `cargo build`
+# at the workspace root should stay a pure-native, fast loop.  Build it explicitly
+# with `cargo build -p nano-infer-wasm --target wasm32-unknown-unknown`.
+default-members = ["crates/core", "crates/cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+nano-infer-core = { path = "crates/core", default-features = false }
+
+[profile.release]
+opt-level     = 3
+lto           = "fat"
+codegen-units = 1
+# NOTE: `panic = "abort"` is a meaningful wasm size win but it makes `cargo test
+# --release` noisy on native.  Deferred to step 10, where it belongs with the
+# rest of the wasm size work (wasm-opt -O3, etc.).
+
+# Native benchmarking profile: release codegen but keep symbols so `perf`/Instruments
+# can attribute time to individual kernels once we start optimising (step 9).
+[profile.bench]
+inherits = "release"
+debug    = true

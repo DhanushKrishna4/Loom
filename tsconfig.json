@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [],
+
+    // Strict. The point of adding TypeScript to this project was that it would
+    // have caught two bugs the browser found instead -- a Float32Array `.map()`
+    // coerced back to numbers, and an IDBRequest read as if it were a record.
+    // Anything less than strict would have missed both.
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["web/**/*.ts", "web/pkg/*.d.ts"]
+}

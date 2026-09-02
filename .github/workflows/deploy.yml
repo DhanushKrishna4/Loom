@@ -1,0 +1,138 @@
+# Test, build and deploy to GitHub Pages.
+#
+# The test job gates the deploy: a build that fails its numerics tests must not
+# reach Pages. Nothing here downloads the model — the tests that need it skip
+# themselves, and the page fetches it from the HuggingFace CDN at runtime.
+
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a run finish rather than cancelling it mid-deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+          rustup component add rustfmt clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy (native)
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Clippy (wasm)
+        run: cargo clippy -p nano-infer-wasm -p nano-infer-wasmbench
+             --target wasm32-unknown-unknown -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+      # The crate is no_std + alloc when `std` is off. If this breaks, core has
+      # grown a host dependency it should not have.
+      - name: no_std builds
+        run: cargo build -p nano-infer-core --no-default-features
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend toolchain
+        run: npm ci || npm install
+
+      # The frontend is TypeScript. This is the gate that would have caught the
+      # Float32Array `.map()` bug the browser found instead.
+      - name: Typecheck the frontend
+        run: npm run typecheck
+
+      - name: Kernel self-test on wasm
+        run: |
+          cargo build -p nano-infer-wasmbench --target wasm32-unknown-unknown --release
+          node tools/wasm_bench.js
+
+      # wasm-opt -O3 rewrites the module, and the shipped artifact is the
+      # optimised one -- so the kernels have to be checked *after* it runs, not
+      # before. Same self-test, opt'd binary.
+      - name: Kernel self-test after wasm-opt
+        run: |
+          sudo apt-get update && sudo apt-get install -y binaryen
+          W=target/wasm32-unknown-unknown/release/nano_infer_wasmbench.wasm
+          wasm-opt -O3 --enable-simd --enable-bulk-memory "$W" -o "$W.opt"
+          node tools/wasm_bench.js "$W.opt"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32-unknown-unknown
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      # wasm-pack shells out to wasm-opt; without it the SIMD win from step 9 is
+      # silently left on the floor.
+      - name: Install binaryen
+        run: sudo apt-get update && sudo apt-get install -y binaryen
+
+      - name: Install frontend toolchain
+        run: npm ci || npm install
+
+      # wasm-pack -> tsc -> vite, and fails on the gzipped size budget.
+      - name: Build site
+        run: tools/build_web.sh
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

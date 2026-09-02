@@ -1,0 +1,71 @@
+:root {
+  --bg: #fbfbfa; --fg: #1a1a18; --dim: #6b6b66; --line: #e2e2dd;
+  --accent: #b4531f; --card: #ffffff;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#17171a; --fg:#e8e8e4; --dim:#9a9a94; --line:#2e2e33;
+          --accent:#e08b52; --card:#1e1e22; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); line-height:1.5; }
+main { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+h1 { font-size:1.6rem; margin:0 0 .25rem; letter-spacing:-.01em; }
+h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.07em;
+     color:var(--dim); margin:0 0 .75rem; font-weight:600; }
+.sub { color:var(--dim); margin:0 0 2rem; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:1.25rem; margin-bottom:1.25rem; }
+.row { display:flex; gap:.6rem; align-items:center; flex-wrap:wrap; margin:.6rem 0; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:.6rem; margin:.6rem 0; }
+.small { font-size:.85rem; }
+.hint { color:var(--dim); font-size:.85rem; margin:.35rem 0; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+button { background:var(--accent); color:#fff; border:0; border-radius:6px;
+         padding:.45rem .9rem; font:inherit; font-size:.9rem; cursor:pointer; }
+button:disabled { opacity:.45; cursor:default; }
+input[type=number], select, textarea { background:var(--bg); color:var(--fg);
+  border:1px solid var(--line); border-radius:6px; padding:.35rem .5rem; font:inherit; }
+input[type=number] { width:5.5rem; }
+input[type=url] { flex:1; min-width:12rem; }
+.grow { flex:1; }
+textarea { width:100%; font:inherit; resize:vertical; }
+label { display:inline-flex; gap:.4rem; align-items:center; font-size:.9rem; }
+.status { font-size:.9rem; color:var(--dim); margin-top:.6rem; min-height:1.4em; }
+.status.error { color:#c0392b; }
+progress { width:100%; height:.4rem; margin-top:.4rem; }
+.out { display:block; white-space:pre-wrap; word-break:break-word; margin-top:1rem;
+       padding:.9rem; min-height:5rem; background:var(--bg);
+       border:1px solid var(--line); border-radius:6px; }
+.stats { color:var(--dim); margin-top:.75rem; }
+.dim { color:var(--dim); }
+.cache { margin-top:.75rem; padding-top:.75rem; border-top:1px solid var(--line); }
+button.ghost { background:transparent; color:var(--dim); border:1px solid var(--line); }
+button.ghost:hover { color:var(--fg); }
+footer { color:var(--dim); text-align:center; margin-top:2rem; }
+details summary { cursor:pointer; color:var(--dim); font-size:.85rem; }
+.viz-block { margin-bottom:1.5rem; }
+.viz-block:last-child { margin-bottom:0; }
+.viz-head { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+/* Explicit heights, not the width/height attributes.
+   A canvas sized only by attributes takes its layout height from the intrinsic
+   aspect ratio -- so one measurement taken before layout (clientHeight 0) that
+   writes canvas.height = 0 collapses it permanently. Fixed CSS heights make the
+   layout independent of the backing store. */
+.cv { width:100%; display:block; background:var(--bg); border:1px solid var(--line);
+      border-radius:6px; margin-top:.4rem; }
+#heads { height:168px; }
+#dist  { height:92px; }
+#kv    { height:46px; }
+#perf  { height:46px; }
+#qquants { height:120px; }
+#qvalues { height:150px; }
+select.mono { background:var(--bg); color:var(--fg); border:1px solid var(--line);
+              border-radius:6px; padding:.35rem .5rem; }
+table.scales { width:100%; border-collapse:collapse; margin-top:.5rem; }
+table.scales th, table.scales td { text-align:right; padding:.15rem .4rem;
+  border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+table.scales th { color:var(--dim); font-weight:500; }
+table.scales td:first-child, table.scales th:first-child { text-align:left; }
+#heads { cursor:crosshair; image-rendering:pixelated; }
+.axis { display:flex; justify-content:space-between; color:var(--dim); margin-top:.2rem; }

@@ -1,0 +1,10 @@
+# SIMD128 is not on by default for wasm32-unknown-unknown, and leaving it off
+# costs about 2.5x -- LLVM autovectorises the integer dot loops in
+# `quant::vecdot` once it is allowed to. Measured, not assumed: see the table in
+# the README and `tools/wasm_bench.js`, which refuses to report a SIMD result
+# without confirming `has_simd128()` first.
+#
+# Safe to enable unconditionally: every browser that can run wasm at all has
+# supported SIMD128 since 2021 (Chrome 91, Firefox 89, Safari 16.4).
+[target.wasm32-unknown-unknown]
+rustflags = ["-C", "target-feature=+simd128"]

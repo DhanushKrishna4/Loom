@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Dump HuggingFace tokenizer output for a corpus, as a Rust test fixture.
+
+A tokenizer is either byte-identical to the reference or it is broken. "The text
+round-trips" is not a correctness test: a wrong pre-tokenizer split, an off-by-one
+merge rank, or a mishandled contraction all round-trip perfectly while producing
+different token IDs -- and different IDs mean a different forward pass.
+
+So this encodes a deliberately awkward corpus with the real
+`Qwen/Qwen2.5-0.5B-Instruct` tokenizer and writes the exact ID sequences out for
+`tokenizer::tests` to assert against.
+
+    pip install transformers
+    python3 tools/dump_reference_tokens.py
+
+Writes tools/reference/tokens/ (gitignored). Downloads tokenizer.json (~7 MB)
+from the hub on first run; the model weights are not needed.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+MODEL = "Qwen/Qwen2.5-0.5B-Instruct"
+OUT = Path(__file__).resolve().parent / "reference" / "tokens"
+
+# Chat message sets. These are duplicated verbatim in tokenizer/tests.rs; if you
+# change one, change the other.
+CHATS = [
+    [{"role": "user", "content": "Hello!"}],
+    [
+        {"role": "system", "content": "You are terse."},
+        {"role": "user", "content": "Why is the sky blue?"},
+    ],
+    [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello! How can I help?"},
+        {"role": "user", "content": "Write a haiku."},
+    ],
+]
+
+
+def corpus() -> list[str]:
+    return [
+        # --- the basics -------------------------------------------------
+        "",
+        "Hello, world!",
+        "hello",
+        " hello",
+        "  hello",
+        "   hello world",
+        "Hello",
+        "HELLO",
+        # --- the whitespace rules ---------------------------------------
+        # `\s+(?!\S)` giving back exactly one space is what makes " hello"
+        # one pre-token and "  hello" two.
+        " ",
+        "  ",
+        "\t",
+        "\n",
+        "\n\n",
+        "a\n\nb",
+        "a \n b",
+        "line one\nline two\r\nline three",
+        "trailing   ",
+        "   leading",
+        "a\u00a0b",       # NBSP is whitespace; an ASCII-only \s gets this wrong
+        "a\u3000b",       # ideographic space
+        "a\u200bb",       # zero-width space is NOT whitespace
+        # --- digits: Qwen2 uses \p{N}, one digit at a time --------------
+        "2024",
+        "1",
+        "12",
+        "123",
+        "1234567890",
+        "3.14159",
+        "v1.2.3-rc4",
+        "١٢٣",           # Arabic-Indic digits
+        "½ ² Ⅻ ①",
+        # --- contractions ------------------------------------------------
+        "don't",
+        "DON'T",
+        "it's Bob's",
+        "we're they've I'm you'll he'd",
+        "WE'RE THEY'VE I'M YOU'LL HE'D",
+        "'s at the start",
+        "rock 'n' roll",
+        # --- punctuation and symbols -------------------------------------
+        "!!!",
+        "...",
+        "?!?!",
+        "-- --- ----",
+        "(a)[b]{c}",
+        "a,b;c:d",
+        "@#$%^&*",
+        "e.g. i.e. etc.",
+        # --- non-Latin scripts -------------------------------------------
+        "café naïve résumé",
+        "Ünicode Straße",
+        "日本語のテキスト",
+        "中文测试",
+        "한국어 텍스트",
+        "Здравствуй, мир",
+        "مرحبا بالعالم",
+        "שלום עולם",
+        "नमस्ते दुनिया",
+        "ελληνικά",
+        # --- emoji and astral plane --------------------------------------
+        "🙂",
+        "👨‍👩‍👧‍👦",
+        "a🙂b",
+        "🇬🇧🇯🇵",
+        "❤️ 🔥 ✨",
+        # --- code ---------------------------------------------------------
+        "def f(x):\n    return x + 1\n",
+        "let x: Vec<u32> = vec![1, 2, 3];",
+        "SELECT * FROM t WHERE a = 'b';",
+        "<html><body>hi</body></html>",
+        "{\"key\": [1, 2, {\"n\": null}]}",
+        "a && b || !c",
+        "path/to/file.txt",
+        "C:\\Users\\test",
+        "https://example.com/a?b=c&d=e#f",
+        # --- special tokens ------------------------------------------------
+        "<|im_start|>",
+        "<|im_end|>",
+        "<|endoftext|>",
+        "<|im_start|>user\nhi<|im_end|>\n",
+        "text <|im_end|> more",
+        # --- adversarial ----------------------------------------------------
+        "a" * 200,
+        " " * 50,
+        "\n" * 20,
+        "ab" * 100,
+        "🙂" * 30,
+        "The quick brown fox jumps over the lazy dog. " * 5,
+    ]
+
+
+def main() -> int:
+    try:
+        from transformers import AutoTokenizer
+    except ImportError:
+        print("error: pip install transformers", file=sys.stderr)
+        return 1
+
+    tok = AutoTokenizer.from_pretrained(MODEL)
+    OUT.mkdir(parents=True, exist_ok=True)
+
+    texts = corpus()
+    with (OUT / "cases.txt").open("w") as f:
+        f.write("# hex(utf8 text) TAB comma-separated token ids\n")
+        f.write("# generated by tools/dump_reference_tokens.py\n")
+        for t in texts:
+            # add_special_tokens=False: we want exactly the text's own tokens.
+            # Special-token *strings* appearing in the text are still parsed,
+            # which is what our EncodeOptions{parse_special:true} does.
+            ids = tok.encode(t, add_special_tokens=False)
+            f.write(t.encode("utf-8").hex() + "\t" + ",".join(map(str, ids)) + "\n")
+
+    with (OUT / "chat.txt").open("w") as f:
+        f.write("# hex(rendered template) TAB comma-separated token ids\n")
+        for msgs in CHATS:
+            s = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+            ids = tok.encode(s, add_special_tokens=False)
+            f.write(s.encode("utf-8").hex() + "\t" + ",".join(map(str, ids)) + "\n")
+
+    # A couple of vocabulary facts the Rust side asserts independently.
+    with (OUT / "meta.txt").open("w") as f:
+        for name in ["<|im_start|>", "<|im_end|>", "<|endoftext|>"]:
+            f.write(f"{name}\t{tok.convert_tokens_to_ids(name)}\n")
+        f.write(f"vocab_size\t{len(tok)}\n")
+
+    print(f"wrote {len(texts)} corpus cases and {len(CHATS)} chat cases to {OUT}")
+    print("now run:  cargo test -p nano-infer-core tokenizer")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,136 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>nano-infer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+
+<main>
+  <header>
+    <h1>nano-infer</h1>
+    <p class="sub">An LLM inference engine written from scratch in Rust, compiled to
+      WebAssembly. No backend — the model runs in this tab.</p>
+  </header>
+
+  <section id="load" class="card">
+    <h2>1 · Load a model</h2>
+    <p class="hint">Qwen2.5-0.5B-Instruct, Q4_K_M GGUF (469 MB). Nothing is uploaded
+      anywhere; the file is parsed in this page.</p>
+    <div class="row">
+      <input type="file" id="file" accept=".gguf">
+    </div>
+    <div class="row">
+      <input type="url" id="url" class="grow" value="" placeholder="…or a URL to a .gguf">
+      <button id="fetch">Fetch</button>
+    </div>
+    <label class="row small">
+      Context
+      <select id="maxseq">
+        <option value="512">512 tokens (12 MB cache)</option>
+        <option value="1024" selected>1024 tokens (25 MB cache)</option>
+        <option value="2048">2048 tokens (48 MB cache)</option>
+      </select>
+    </label>
+    <div id="loadStatus" class="status"></div>
+    <progress id="loadBar" value="0" max="1" hidden></progress>
+    <div class="cache row small">
+      <span id="cacheStatus" class="dim"></span>
+      <button id="clearCache" class="ghost" hidden>Clear cache</button>
+    </div>
+  </section>
+
+  <section id="gen" class="card" hidden>
+    <h2>2 · Generate</h2>
+    <div id="modelInfo" class="mono small"></div>
+    <textarea id="prompt" rows="3">Write one sentence about the ocean.</textarea>
+    <div class="row">
+      <label><input type="checkbox" id="chat" checked> chat template</label>
+      <label>max tokens <input type="number" id="ntok" value="96" min="1" max="1024"></label>
+    </div>
+    <details>
+      <summary>Sampling</summary>
+      <div class="grid">
+        <label>temperature <input type="number" id="temp" value="0.7" step="0.05" min="0" max="2"></label>
+        <label>top-k <input type="number" id="topk" value="40" min="0"></label>
+        <label>top-p <input type="number" id="topp" value="0.95" step="0.01" min="0" max="1"></label>
+        <label>repeat penalty <input type="number" id="pen" value="1.1" step="0.05" min="1" max="2"></label>
+        <label>seed <input type="number" id="seed" value="42" min="0"></label>
+      </div>
+      <p class="hint">Temperature 0 is greedy and ignores the rest. The seed makes a
+        generation reproducible — it goes in the URL when you share one.</p>
+    </details>
+    <div class="row">
+      <button id="run">Generate</button>
+      <button id="stop" disabled>Stop</button>
+      <button id="clear">New conversation</button>
+    </div>
+    <output id="out" class="out"></output>
+    <div id="stats" class="stats mono small"></div>
+  </section>
+
+  <section id="viz" class="card" hidden>
+    <h2>3 · What it is doing</h2>
+
+    <div class="viz-block">
+      <div class="viz-head">
+        <strong>Attention</strong>
+        <label class="small"><input type="checkbox" id="capture"> capture (costs a little speed)</label>
+      </div>
+      <p class="hint">Each cell is one head, rows are layers. Brighter means the
+        head is attending more sharply — every distribution sums to 1, so
+        concentration is the signal, not magnitude. Click a cell.</p>
+      <canvas id="heads" class="cv" height="150"></canvas>
+      <div class="axis small mono"><span>head 0</span><span id="headSel">layer 0 · head 0</span><span id="headMax">head 13</span></div>
+      <canvas id="dist" class="cv" height="90"></canvas>
+      <p class="hint">The selected head's distribution over the context so far.</p>
+    </div>
+
+    <div class="viz-block">
+      <strong>KV cache</strong>
+      <canvas id="kv" class="cv" height="46"></canvas>
+    </div>
+
+    <div class="viz-block">
+      <strong>Where the time goes</strong>
+      <canvas id="perf" class="cv" height="46"></canvas>
+      <p class="hint">From the engine's own per-op timings, not a stopwatch around
+        the call — so "overhead" means sampling and detokenisation, not
+        un-instrumented work.</p>
+    </div>
+  </section>
+
+  <section id="quant" class="card" hidden>
+    <h2>4 · Quantisation explorer</h2>
+    <p class="hint">Every weight in this model is reconstructed as
+      <code>scale × quant − min</code>. This shows the actual stored integers,
+      the scales they are multiplied by, and how much resolution that leaves.</p>
+    <div class="row">
+      <select id="qtensor" class="grow mono small"></select>
+      <label class="small">block <input type="number" id="qblock" value="0" min="0"></label>
+    </div>
+    <div id="qmeta" class="mono small dim"></div>
+
+    <div class="viz-block">
+      <strong class="small">Stored integers</strong>
+      <canvas id="qquants" class="cv"></canvas>
+      <div class="axis small mono"><span id="qrange"></span><span>one cell per weight</span></div>
+    </div>
+
+    <div class="viz-block">
+      <strong class="small">Reconstructed values, and the grid they snap to</strong>
+      <canvas id="qvalues" class="cv"></canvas>
+      <p class="hint">Horizontal lines are the levels this block can represent.
+        Every weight sits exactly on one — that gap is what quantisation cost.</p>
+    </div>
+
+    <div id="qscales" class="mono small"></div>
+  </section>
+
+  <p class="small"><a href="bench.html">Benchmark against transformers.js →</a></p>
+
+  <footer class="small">
+    Generation is driven from JS one token at a time, so the tab stays responsive —
+    the engine never loops internally, and it keeps going if you switch tabs.
+  </footer>
+</main>
+
+<script type="module" src="app.ts"></script>
