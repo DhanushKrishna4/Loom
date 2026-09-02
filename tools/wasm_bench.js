@@ -138,8 +138,13 @@ async function main() {
               `-> ${(1000 / (total / 1e6)).toFixed(2)} tok/s`);
   console.log('(single-threaded, ignoring attention and sampling)');
 
+  // tools/reference/ holds generated dumps and is gitignored, so it does not
+  // exist in a fresh checkout -- create it rather than assuming a dev machine
+  // that has already run the dump scripts.
+  const outDir = path.join(__dirname, 'reference');
+  fs.mkdirSync(outDir, { recursive: true });
   fs.writeFileSync(
-    path.join(__dirname, 'reference', 'wasm-bench.json'),
+    path.join(outDir, 'wasm-bench.json'),
     JSON.stringify({ simd, node: process.version, nsPerElement: results }, null, 2)
   );
 }
