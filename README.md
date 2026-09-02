@@ -677,7 +677,7 @@ repository and break local preview.
 
 #### What the first real CI run cost
 
-Live at <https://dhanushkrishna4.github.io/LLM-inference-engine-in-WASM/>. The
+Live at <https://dhanushkrishna4.github.io/Loom/>. The
 workflow needed three rounds, and the last one is the interesting one.
 
 **1. Typecheck ran before the thing it typechecks existed.** `web/pkg` is
