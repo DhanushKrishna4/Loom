@@ -1,0 +1,117 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=block">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --bg: #070b0d; --fg: #e6efec; --dim: #75878b;
+    --line: #1a252a; --accent: #4fe0bc;
+    --mono: "IBM Plex Mono", monospace;
+    --sans: "Archivo", sans-serif;
+  }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    position: relative;
+  }
+  /* A cold wash from behind the matrix, so the right side has depth rather
+     than sitting flat on the ground. */
+  .wash {
+    position: absolute; inset: 0;
+    background: radial-gradient(64% 90% at 78% 46%, rgba(79,224,188,.10), transparent 70%);
+  }
+  /* Framed and fully contained, so it reads as a triangle -- the causal mask --
+     rather than a teal wall with a diagonal edge. */
+  .panel {
+    position: absolute; right: 68px; top: 96px;
+    width: 438px; height: 438px;
+    border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+    background: linear-gradient(160deg, #111a1f, #070b0d);
+  }
+  #m { display: block; width: 100%; height: 100%; }
+
+  .copy { position: absolute; left: 76px; top: 132px; width: 560px; }
+
+  .eyebrow {
+    font-family: var(--mono); font-size: 17px; font-weight: 500;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--accent);
+    margin-bottom: 26px;
+  }
+  .eyebrow i { font-style: normal; color: var(--line); padding: 0 4px; }
+
+  h1 {
+    font-family: var(--mono); font-weight: 600; font-size: 152px;
+    line-height: .88; letter-spacing: -.05em; color: var(--fg);
+  }
+  h1 b { color: var(--accent); font-weight: 600; }
+
+  .sub {
+    margin-top: 28px; font-size: 25px; line-height: 1.38;
+    color: var(--dim); font-weight: 400; text-wrap: balance;
+  }
+  .sub b { color: var(--fg); font-weight: 600; }
+
+  .spec {
+    position: absolute; left: 76px; bottom: 62px;
+    display: flex; gap: 0; border-top: 1px solid var(--line); padding-top: 20px;
+    width: 560px;
+  }
+  .spec div { padding-right: 44px; }
+  .spec dt {
+    font-family: var(--mono); font-size: 13px; letter-spacing: .17em;
+    text-transform: uppercase; color: var(--dim); margin-bottom: 6px;
+  }
+  .spec dd {
+    font-family: var(--mono); font-size: 25px; font-weight: 500;
+    letter-spacing: -.02em; color: var(--fg);
+  }
+  .spec dd em { font-style: normal; color: var(--dim); font-size: .58em; }
+</style>
+
+<div class="wash"></div>
+<div class="panel"><canvas id="m" width="1400" height="1400"></canvas></div>
+
+<div class="copy">
+  <div class="eyebrow">Rust <i>/</i> WebAssembly <i>/</i> No backend</div>
+  <h1>L<b>oo</b>m</h1>
+  <p class="sub"><b>A language model runs in this tab.</b><br>Written from scratch. No server.</p>
+</div>
+
+<dl class="spec">
+  <div><dt>Engine</dt><dd>93 <em>KB</em></dd></div>
+  <div><dt>Model</dt><dd>469 <em>MB</em></dd></div>
+  <div><dt>Quant kernels</dt><dd>5</dd></div>
+  <div><dt>Servers</dt><dd>0</dd></div>
+</dl>
+
+<script>
+// The same field the site's hero draws: a causal attention matrix with the
+// sink column at position 0, a local diagonal band, and diffuse mid-range
+// structure. Rendered fully swept rather than animating.
+const c = document.getElementById('m');
+const ctx = c.getContext('2d');
+const N = 34, S = c.width / N;
+const noise = (x, y) => { const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return n - Math.floor(n); };
+
+for (let q = 0; q < N; q++) {
+  const row = [];
+  let sum = 0;
+  for (let k = 0; k <= q; k++) {
+    const v = (k === 0 ? 0.9 : 0) + Math.exp(-((q - k) ** 2) / 26) * 1.15
+            + noise(k, q) * noise(q * 0.37, k * 0.71) * 0.5;
+    row.push(v); sum += v;
+  }
+  for (let k = 0; k <= q; k++) {
+    const a = Math.min(0.95, Math.sqrt(row[k] / sum) * 1.55);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#4fe0bc';
+    ctx.fillRect(k * S, q * S, S - S * 0.14, S - S * 0.14);
+  }
+}
+ctx.globalAlpha = 1;
+document.documentElement.dataset.ready = '1';
+</script>

@@ -4,6 +4,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Loom — an LLM inference engine written from scratch in Rust and compiled to WebAssembly. Qwen2.5-0.5B runs entirely in the browser tab, with no backend.">
 <meta name="theme-color" content="#070b0d">
+
+<!-- Open Graph. These URLs are absolute, and are the only absolute URLs in the
+     site: vite's base is './' so everything else moves with the deployment, but
+     a crawler fetches og:image from its own servers and cannot resolve a
+     relative path. The filename is versioned because LinkedIn, Slack and
+     iMessage cache og:image against its URL and will not re-fetch a changed
+     file -- a new card needs a new name, not a new upload. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Loom">
+<meta property="og:url" content="https://dhanushkrishna4.github.io/Loom/">
+<meta property="og:title" content="Loom — an LLM inference engine in Rust and WebAssembly">
+<meta property="og:description" content="Qwen2.5-0.5B runs entirely in a browser tab. No server and no inference library — the GGUF parser, the quantised matmul kernels, attention and the tokeniser are all written from scratch in Rust.">
+<meta property="og:image" content="https://dhanushkrishna4.github.io/Loom/og-v1.png">
+<meta property="og:image:secure_url" content="https://dhanushkrishna4.github.io/Loom/og-v1.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Loom: the project name beside a causal attention matrix, with the engine size, model size and kernel count.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Loom — an LLM inference engine in Rust and WebAssembly">
+<meta name="twitter:description" content="Qwen2.5-0.5B runs entirely in a browser tab. No server and no inference library — the GGUF parser, the quantised matmul kernels, attention and the tokeniser are all written from scratch in Rust.">
+<meta name="twitter:image" content="https://dhanushkrishna4.github.io/Loom/og-v1.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
