@@ -244,10 +244,10 @@ function redrawViz(result: DecodeResult | null): void {
 
   if (result) {
     viz.drawPerf($<HTMLCanvasElement>('perf'), [
-      { label: 'matmul', ms: result.matmulMs, color: '#b4531f' },
-      { label: 'attention', ms: result.attentionMs, color: '#5b8a72' },
-      { label: 'elementwise', ms: result.otherMs, color: '#5a6b8c' },
-      { label: 'overhead', ms: result.overheadMs, color: '#6b6b66' },
+      { label: 'matmul', ms: result.matmulMs, color: opColour('--op-matmul', '#ffae57') },
+      { label: 'attention', ms: result.attentionMs, color: opColour('--op-attn', '#4fe0bc') },
+      { label: 'elementwise', ms: result.otherMs, color: opColour('--op-elem', '#7aa2c9') },
+      { label: 'overhead', ms: result.overheadMs, color: opColour('--op-overhead', '#56666a') },
     ]);
   }
 
@@ -379,6 +379,11 @@ function applySampling(): void {
     64,
     seed,
   );
+}
+
+/** Read a per-op bar colour from CSS so the bar follows the active theme. */
+function opColour(name: string, fallback: string): string {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
 }
 
 function showStats(extra = ''): void {

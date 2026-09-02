@@ -26,6 +26,12 @@
   --accent-ink: #04211b; /* text that sits on --accent */
   --warm:    #ffae57;   /* reconstructed floats, the counterpart */
   --bad:     #ff6b6b;
+  /* Per-op bar. Semantic, not decorative: matmul is the slice that should
+     dominate, so it gets the warm/data hue and the rest recede from it. */
+  --op-matmul:   #ffae57;
+  --op-attn:     #4fe0bc;
+  --op-elem:     #7aa2c9;
+  --op-overhead: #56666a;
   --glow:    0 0 0 1px rgba(79, 224, 188, .28), 0 8px 30px -12px rgba(79, 224, 188, .45);
 
   --sans: "Archivo", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -53,6 +59,10 @@
     --accent-ink: #ffffff;
     --warm:    #a8521c;
     --bad:     #c0392b;
+    --op-matmul:   #b4531f;
+    --op-attn:     #00775f;
+    --op-elem:     #3f6f9e;
+    --op-overhead: #8a9698;
     --glow:    0 0 0 1px rgba(0, 119, 95, .2), 0 8px 24px -14px rgba(0, 119, 95, .5);
     color-scheme: light;
   }
