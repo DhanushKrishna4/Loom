@@ -28,6 +28,27 @@ RAW=web/pkg/nano_infer_wasm_bg.wasm
 # else in this pipeline looks at the binary's structure, so check it here.
 node tools/check_wasm_tables.js "$RAW"
 
+# "Verify SIMD128 is actually being emitted rather than assuming" -- the wasm
+# crate has a has_simd128() that returns cfg!(target_feature = "simd128"), but
+# that reports how the compiler was *invoked*, not what came out the other end.
+# The only honest check is the disassembly. binaryen is already required here
+# (wasm-pack shells out to wasm-opt), so wasm-dis costs nothing extra.
+#
+# The floor guards against SIMD vanishing entirely -- a dropped RUSTFLAGS, a
+# .cargo/config.toml that stopped being read -- which is silent otherwise: the
+# build still succeeds and the kernels still return correct answers, ~3x slower.
+SIMD_FLOOR=500
+if ! command -v wasm-dis >/dev/null 2>&1; then
+    echo "ERROR: wasm-dis not found. Install binaryen (wasm-opt's own package)." >&2
+    exit 1
+fi
+V128=$(wasm-dis "$RAW" | grep -cE '\b(i8x16|i16x8|i32x4|f32x4|i64x2|f64x2|v128)\.' || true)
+printf '    simd128: %d v128 instructions emitted (floor %d)\n' "$V128" "$SIMD_FLOOR"
+if [ "$V128" -lt "$SIMD_FLOOR" ]; then
+    echo "ERROR: only $V128 v128 instructions -- SIMD128 is not reaching the binary" >&2
+    exit 1
+fi
+
 GZ=$(gzip -9 -c "$RAW" | wc -c | tr -d ' ')
 printf '    %s: %d bytes raw, %d gzipped (budget %d, %d%% used)\n' \
     "$RAW" "$(wc -c < "$RAW")" "$GZ" "$BUDGET_GZIP" "$(( GZ * 100 / BUDGET_GZIP ))"

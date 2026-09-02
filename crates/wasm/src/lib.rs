@@ -151,6 +151,7 @@ pub struct Stats {
     prefill_ms: f64,
     decode_tokens: u32,
     decode_ms: f64,
+    first_token_ms: f64,
     rolling_tps: f64,
     cache_used: u32,
     cache_capacity: u32,
@@ -199,7 +200,14 @@ impl Stats {
             self.decode_tokens as f64 * 1000.0 / self.decode_ms
         }
     }
-    /// Time to first token: prefill plus the first decode step.
+    /// Time to first token: prefill plus the first decode step. This is what a
+    /// user waits through before anything appears, and it is not `prefillMs`:
+    /// the first decode step is paid before the first character shows up.
+    /// Zero until that token has been produced.
+    #[wasm_bindgen(getter, js_name = timeToFirstToken)]
+    pub fn time_to_first_token(&self) -> f64 {
+        self.first_token_ms
+    }
     #[wasm_bindgen(getter, js_name = cacheUsed)]
     pub fn cache_used(&self) -> u32 {
         self.cache_used
@@ -338,6 +346,9 @@ pub struct Engine {
     prefill_ms: f64,
     decode_tokens: u32,
     decode_ms: f64,
+    /// Latched on the first decode step after a reset and never overwritten:
+    /// the point is the *first* token, so later steps must not move it.
+    first_token_ms: f64,
     /// Durations of the most recent decode steps, as a ring buffer.
     recent_ms: [f64; ROLLING_WINDOW],
     recent_at: usize,
@@ -395,6 +406,7 @@ impl Engine {
             prefill_ms: 0.0,
             decode_tokens: 0,
             decode_ms: 0.0,
+            first_token_ms: 0.0,
             recent_ms: [0.0; ROLLING_WINDOW],
             recent_at: 0,
             recent_len: 0,
@@ -645,6 +657,9 @@ impl Engine {
         let ms = now_ms() - t0;
         self.decode_tokens += 1;
         self.decode_ms += ms;
+        if self.decode_tokens == 1 {
+            self.first_token_ms = self.prefill_ms + ms;
+        }
         self.recent_ms[self.recent_at] = ms;
         self.recent_at = (self.recent_at + 1) % ROLLING_WINDOW;
         self.recent_len = (self.recent_len + 1).min(ROLLING_WINDOW);
@@ -700,6 +715,7 @@ impl Engine {
         self.prefill_ms = 0.0;
         self.decode_tokens = 0;
         self.decode_ms = 0.0;
+        self.first_token_ms = 0.0;
         self.recent_ms = [0.0; ROLLING_WINDOW];
         self.recent_at = 0;
         self.recent_len = 0;
@@ -711,6 +727,7 @@ impl Engine {
             prefill_ms: self.prefill_ms,
             decode_tokens: self.decode_tokens,
             decode_ms: self.decode_ms,
+            first_token_ms: self.first_token_ms,
             rolling_tps: {
                 let n = self.recent_len;
                 let sum: f64 = self.recent_ms[..n].iter().sum();

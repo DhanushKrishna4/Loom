@@ -16,6 +16,18 @@ const DEFAULT_URL =
   new URLSearchParams(location.search).get('gguf') ||
   'https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf';
 
+// `?seed=<n>` reproduces a specific generation. Sampling is seeded PCG32, so
+// the same seed, prompt and parameters give the same tokens back -- which is
+// only useful if the seed can travel, hence the URL. Written back on every run
+// (replaceState, not pushState: a shared link should not stack history entries).
+const URL_SEED = new URLSearchParams(location.search).get('seed');
+
+function shareCurrentSeed(seed: number): void {
+  const u = new URL(location.href);
+  u.searchParams.set('seed', String(seed));
+  history.replaceState(null, '', u);
+}
+
 /**
  * Look up an element that the page is required to contain.
  *
@@ -347,13 +359,17 @@ $<HTMLInputElement>('qblock').addEventListener('change', drawQuant);
 function applySampling(): void {
   const engine = globalEngine();
   if (!engine) return;
+  const seed = parseInt($<HTMLInputElement>('seed').value, 10);
+  // Every path that changes sampling comes through here, so publishing the seed
+  // here means the URL is correct no matter how the value was changed.
+  if (Number.isFinite(seed)) shareCurrentSeed(seed);
   engine.setSampling(
     parseFloat($<HTMLInputElement>('temp').value),
     parseInt($<HTMLInputElement>('topk').value, 10),
     parseFloat($<HTMLInputElement>('topp').value),
     parseFloat($<HTMLInputElement>('pen').value),
     64,
-    parseInt($<HTMLInputElement>('seed').value, 10),
+    seed,
   );
 }
 
@@ -363,6 +379,9 @@ function showStats(extra = ''): void {
   const s = engine.stats();
   $('stats').textContent =
     `${s.tokensPerSecond.toFixed(2)} tok/s now (${s.averageTokensPerSecond.toFixed(2)} avg) · ` +
+    // Not the same as prefill: the first decode step lands before any character
+    // does, so this is the latency a reader actually experiences.
+    (s.timeToFirstToken > 0 ? `first token ${(s.timeToFirstToken / 1000).toFixed(2)} s · ` : '') +
     `prefill ${s.prefillTokens} tok in ${(s.prefillMs / 1000).toFixed(2)} s · ` +
     `decode ${s.decodeTokens} tok · ` +
     `kv ${s.cacheUsed}/${s.cacheCapacity} (${fmtBytes(s.cacheBytes)})${extra}`;
@@ -442,6 +461,15 @@ $('clear').addEventListener('click', () => {
 
 await init();
 await refreshCacheUI();
+
+// A shared `?seed=` link has to actually reproduce the run, which means the
+// value must reach the input before the first generation reads it. Rejecting
+// non-finite input here rather than letting NaN through to the engine, where it
+// would silently become a different seed.
+if (URL_SEED !== null) {
+  const n = parseInt(URL_SEED, 10);
+  if (Number.isFinite(n) && n >= 0) $<HTMLInputElement>('seed').value = String(n);
+}
 
 // Preselect the most recently cached model, so a revisit is one click and no
 // download. Falling back to the CDN URL only when nothing is cached -- otherwise

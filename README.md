@@ -70,9 +70,10 @@ crates/core/   pure compute, no_std + alloc, one dependency (libm)
 crates/wasm/   the wasm-bindgen boundary: Engine, DecodeResult, Stats
 crates/wasmbench/  correctness + timing harness that runs ON wasm
 web/           a page that loads a model and streams tokens
-  idb.js       IndexedDB model cache, no dependencies
-  viz.js       attention heatmap, KV cache, perf panel, quant explorer — all canvas
-  bench.html   side-by-side against transformers.js
+  app.ts       load, generate, and drive the panels
+  idb.ts       IndexedDB model cache, no dependencies
+  viz.ts       attention heatmap, KV cache, perf panel, quant explorer — all canvas
+  bench.ts     side-by-side against transformers.js
 crates/cli/    native driver — debug numerics here, never in a browser
 crates/wasm/   wasm-bindgen boundary, marshalling only
 tools/         python: fixture generation, synthetic model generation
@@ -316,6 +317,13 @@ Two details worth stating, because both are easy to get backwards:
   xorshift fails — and here the RNG *is* the reproducibility guarantee, since a
   seed in a URL has to reproduce a generation on someone else's machine.
 
+  That last clause was, for a while, a claim the page did not honour: the CLI
+  took `--seed`, the engine was properly seeded, and the web UI had a seed box,
+  but nothing ever put the value in the URL, so a generation could not actually
+  be shared. `?seed=<n>` is now read on load and written back with
+  `replaceState` from `applySampling()` — the one place the seed reaches the
+  engine, so the URL cannot drift from what is running.
+
 ```
 $ ... --temp 0.7 --top-k 40 --seed 3 --repeat-penalty 1.0
  Red, Blue, and Green. A quick brown fox jumps over the lazy dog.
@@ -336,6 +344,21 @@ benchmarking the scalar path on an aarch64 laptop says nothing about whether a
 `v128` rewrite helps in a browser — and `tools/wasm_bench.js` refuses to report a
 SIMD result without calling `has_simd128()` first, so a mis-set flag cannot
 quietly produce scalar numbers under a SIMD heading.
+
+That probe is narrower than it looks, though: `has_simd128()` returns
+`cfg!(target_feature = "simd128")`, which reports how the compiler was *invoked*,
+not what came out the other end. The spec's own warning was to check the
+disassembly rather than assume, so `tools/build_web.sh` now does exactly that —
+`wasm-dis` over the shipped module, counting real `v128` instructions:
+
+```
+    simd128: 4716 v128 instructions emitted (floor 500)
+```
+
+The assumption turned out to be correct, which is the ordinary outcome and not
+a reason to have left it unchecked. The floor exists because losing SIMD is
+silent: a dropped `RUSTFLAGS` or a `.cargo/config.toml` that stopped being read
+still builds, still returns correct answers, and is roughly 3x slower.
 
 ns per element, one 896-element weight row, median of 5, with a projected decode
 step recomputed for every stage from the same formula and the real format mix:
@@ -431,7 +454,7 @@ web/pkg/nano_infer_wasm_bg.wasm: 250858 bytes raw, 86817 gzipped
 
 ### Model caching (step 11)
 
-`web/idb.js`, about 100 lines and no dependencies.
+`web/idb.ts`, about 100 lines and no dependencies.
 
 **IndexedDB, not localStorage or the Cache API.** localStorage caps at ~5–10 MB
 and is synchronous — three orders of magnitude short of a 469 MB model. The Cache
@@ -891,6 +914,14 @@ head's weights sum to 1 within 1e-4, all lie in [0,1], and at position 0 every
 head attends to itself with weight exactly 1. A heatmap draws a plausible picture
 whatever is in the buffer, so this is the only thing separating a visualisation
 that is informative from one that is decorative.
+
+**Time to first token** is reported separately from prefill, because they are
+not the same number: the first decode step is paid before any character appears.
+It is latched on that first step and never updated, so it stays the *first*
+token's latency rather than drifting into an average. Its doc comment had come
+adrift onto `cacheUsed` — which meant the generated `.d.ts` documented the KV
+cache position count as "Time to first token" — so the getter it described was
+written to match the comment.
 
 **The per-op timings** are asserted to be zero without a clock and to put matmul
 as the largest bucket with one. That second assertion caught a real bug: the FFN
