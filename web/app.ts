@@ -9,6 +9,14 @@ import init, { Engine } from './pkg/nano_infer_wasm.js';
 import type { DecodeResult, TensorSummary } from './pkg/nano_infer_wasm.js';
 import * as cache from './idb';
 import * as viz from './viz';
+import { startHero, revealOnScroll } from './hero';
+
+// Chrome-first, before anything that can throw: the hero and the reveals are
+// pure presentation, and a model that fails to load should still leave a page
+// that looks finished rather than a half-painted one.
+const heroCanvas = document.getElementById('heroCanvas');
+if (heroCanvas instanceof HTMLCanvasElement) startHero(heroCanvas);
+revealOnScroll();
 
 // `?gguf=<url>` points at a local copy, which saves a 469 MB download when you
 // already have the file on disk.

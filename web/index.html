@@ -2,19 +2,60 @@
 <meta charset="utf-8">
 <title>nano-infer</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="An LLM inference engine written from scratch in Rust and compiled to WebAssembly. Qwen2.5-0.5B runs entirely in the browser tab, with no backend.">
+<meta name="theme-color" content="#070b0d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="style.css">
 
-<main>
-  <header>
-    <h1>nano-infer</h1>
-    <p class="sub">An LLM inference engine written from scratch in Rust, compiled to
-      WebAssembly. No backend — the model runs in this tab.</p>
-  </header>
+<nav class="topbar">
+  <div class="topbar-inner">
+  <a class="brand" href="./">nano-infer</a>
+  <div class="topnav">
+    <a href="bench.html">Benchmark</a>
+    <a href="https://github.com/DhanushKrishna4/LLM-inference-engine-in-WASM" target="_blank" rel="noopener">Source</a>
+  </div>
+  </div>
+</nav>
 
-  <section id="load" class="card">
-    <h2>1 · Load a model</h2>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Rust → WebAssembly <span>/</span> SIMD128 <span>/</span> single thread</p>
+        <h1 class="wordmark">nano<b>-</b>infer</h1>
+        <p class="thesis"><strong>A language model runs in this tab.</strong> No server and no
+          inference library — the GGUF parser, the quantised matmul kernels, attention
+          and the tokeniser are all written from scratch in Rust.</p>
+        <a class="cta" href="#load">Load a model ↓</a>
+      </div>
+
+      <figure class="hero-panel">
+        <canvas id="heroCanvas" aria-hidden="true"></canvas>
+        <figcaption>
+          <span>causal self-attention</span>
+          <span class="dim">query × key · lower-triangular</span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Engine</dt><dd>93 <em>KB gzipped</em></dd></div>
+      <div><dt>Model</dt><dd>469 <em>MB Q4_K_M</em></dd></div>
+      <div><dt>Quant kernels</dt><dd>5 <em>hand-written</em></dd></div>
+      <div><dt>Threads</dt><dd>1</dd></div>
+      <div><dt>Servers</dt><dd>0</dd></div>
+    </dl>
+  </div>
+</header>
+
+<main>
+  <section id="load" class="card reveal">
+    <h2 data-n="01">Load a model</h2>
     <p class="hint">Qwen2.5-0.5B-Instruct, Q4_K_M GGUF (469 MB). Nothing is uploaded
-      anywhere; the file is parsed in this page.</p>
+      anywhere; the file is parsed in this page. Set the context length before you
+      load — it sizes the KV cache when the engine is built.</p>
     <div class="row">
       <input type="file" id="file" accept=".gguf">
     </div>
@@ -38,8 +79,8 @@
     </div>
   </section>
 
-  <section id="gen" class="card" hidden>
-    <h2>2 · Generate</h2>
+  <section id="gen" class="card reveal" hidden>
+    <h2 data-n="02">Generate</h2>
     <div id="modelInfo" class="mono small"></div>
     <textarea id="prompt" rows="3">Write one sentence about the ocean.</textarea>
     <div class="row">
@@ -61,14 +102,14 @@
     <div class="row">
       <button id="run">Generate</button>
       <button id="stop" disabled>Stop</button>
-      <button id="clear">New conversation</button>
+      <button id="clear" class="ghost">New conversation</button>
     </div>
     <output id="out" class="out"></output>
     <div id="stats" class="stats mono small"></div>
   </section>
 
-  <section id="viz" class="card" hidden>
-    <h2>3 · What it is doing</h2>
+  <section id="viz" class="card reveal" hidden>
+    <h2 data-n="03">What it is doing</h2>
 
     <div class="viz-block">
       <div class="viz-head">
@@ -77,7 +118,8 @@
       </div>
       <p class="hint">Each cell is one head, rows are layers. Brighter means the
         head is attending more sharply — every distribution sums to 1, so
-        concentration is the signal, not magnitude. Click a cell.</p>
+        concentration is the signal, not magnitude. Tick capture, generate, then
+        click a cell.</p>
       <canvas id="heads" class="cv" height="150"></canvas>
       <div class="axis small mono"><span>head 0</span><span id="headSel">layer 0 · head 0</span><span id="headMax">head 13</span></div>
       <canvas id="dist" class="cv" height="90"></canvas>
@@ -98,8 +140,8 @@
     </div>
   </section>
 
-  <section id="quant" class="card" hidden>
-    <h2>4 · Quantisation explorer</h2>
+  <section id="quant" class="card reveal" hidden>
+    <h2 data-n="04">Quantisation explorer</h2>
     <p class="hint">Every weight in this model is reconstructed as
       <code>scale × quant − min</code>. This shows the actual stored integers,
       the scales they are multiplied by, and how much resolution that leaves.</p>
@@ -125,11 +167,60 @@
     <div id="qscales" class="mono small"></div>
   </section>
 
-  <p class="small"><a href="bench.html">Benchmark against transformers.js →</a></p>
+  <section class="how reveal">
+    <h2>How it works</h2>
+    <p class="hint how-lede">Four decisions do most of the work. They are the reason this
+      fits in a tab at all, and the reason the numbers above are believable.</p>
 
-  <footer class="small">
+    <div class="concepts">
+      <article class="concept">
+        <span class="kicker">Memory</span>
+        <h3>Compression that is never undone</h3>
+        <p>Half a billion weights as 32-bit floats is about 2&nbsp;GB — past what the tab
+          can hold. Stored at four to six bits each it is 469&nbsp;MB, and it is never
+          decompressed. Each block of 32 values is unpacked inside the innermost loop,
+          used, and discarded.</p>
+        <p class="note">The dequantised model never exists in memory.</p>
+      </article>
+
+      <article class="concept">
+        <span class="kicker">Speed</span>
+        <h3>Integers, not decimals</h3>
+        <p>The activation vector is quantised to int8 once per matrix. After that the
+          inner loop is integer dot products, which map onto <code>i16x8.extmul</code>
+          and <code>i32x4.extadd_pairwise</code> — instructions WebAssembly actually
+          has, rather than the half-precision floats it has to emulate.</p>
+        <p class="note">4,716 v128 instructions in the shipped binary.</p>
+      </article>
+
+      <article class="concept">
+        <span class="kicker">Formats</span>
+        <h3>Five quantisations, written by hand</h3>
+        <p>Q4_0, Q5_0, Q8_0, Q4_K and Q6_K, because one Q4_K_M file uses all of them.
+          Q4_K packs eight six-bit scales and eight six-bit minimums into exactly
+          96&nbsp;bits — the single most likely place for a silent numerical bug.</p>
+        <p class="note">Verified bit-exact against ggml on real blocks.</p>
+      </article>
+
+      <article class="concept">
+        <span class="kicker">Correctness</span>
+        <h3>Plausible is not correct</h3>
+        <p>“It looks like English” proves nothing: a broken engine produces fluent,
+          confident nonsense. Every intermediate activation is checked against PyTorch
+          layer by layer, and a fixed prompt with a fixed seed has to reproduce an exact
+          token sequence.</p>
+        <p class="note">177 tests, 12 of them against the real model.</p>
+      </article>
+    </div>
+  </section>
+
+  <a class="next" href="bench.html">Benchmark against transformers.js →</a>
+
+  <footer>
     Generation is driven from JS one token at a time, so the tab stays responsive —
     the engine never loops internally, and it keeps going if you switch tabs.
+    Qwen2.5-0.5B is a small model and will state things confidently that are not
+    true; the engine reproduces what the weights say, faithfully.
   </footer>
 </main>
 

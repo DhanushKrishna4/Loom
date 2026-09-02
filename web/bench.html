@@ -2,17 +2,30 @@
 <meta charset="utf-8">
 <title>nano-infer — benchmark</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="style.css">
 
+<nav class="topbar">
+  <div class="topbar-inner">
+  <a class="brand" href="./">nano-infer</a>
+  <div class="topnav">
+    <a href="./">Engine</a>
+    <a href="https://github.com/DhanushKrishna4/LLM-inference-engine-in-WASM" target="_blank" rel="noopener">Source</a>
+  </div>
+  </div>
+</nav>
+
 <main>
-  <header>
+  <header class="page-head">
     <h1>nano-infer vs transformers.js</h1>
     <p class="sub">Same model, same prompt, same decoding, same tab. transformers.js
       is loaded here for comparison only — it is not a dependency of the engine.</p>
   </header>
 
   <section class="card">
-    <h2>What is being compared</h2>
+    <h2 data-n="01">What is being compared</h2>
     <table class="scales" id="setup">
       <thead><tr><th>&nbsp;</th><th>nano-infer</th><th>transformers.js</th></tr></thead>
       <tbody>
@@ -29,7 +42,7 @@
   </section>
 
   <section class="card">
-    <h2>Run</h2>
+    <h2 data-n="02">Run</h2>
     <label class="row small">prompt
       <input type="text" id="prompt" class="grow" value="The capital of France is">
     </label>
@@ -50,7 +63,7 @@
   </section>
 
   <section class="card">
-    <h2>Results</h2>
+    <h2 data-n="03">Results</h2>
     <table class="scales" id="results">
       <thead><tr><th>&nbsp;</th><th>load</th><th>prefill</th><th>decode</th><th>tok/s</th></tr></thead>
       <tbody></tbody>
@@ -60,7 +73,7 @@
   </section>
 
   <section class="card">
-    <h2>Where the gap comes from</h2>
+    <h2 data-n="04">Where the gap comes from</h2>
     <div id="analysis" class="small">
       <p class="hint">Filled in once both have run.</p>
     </div>
