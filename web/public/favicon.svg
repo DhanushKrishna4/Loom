@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Loom">
+  <title>Loom</title>
+  <rect width="32" height="32" rx="7" fill="#070b0d"/>
+  <g fill="#4fe0bc">
+    <rect x="3.25" y="3.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="3.25" y="12.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="12.25" y="12.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="3.25" y="21.25" width="7.5" height="7.5" rx="1"/>
+    <rect x="12.25" y="21.25" width="7.5" height="7.5" rx="1" opacity=".62"/>
+    <rect x="21.25" y="21.25" width="7.5" height="7.5" rx="1"/>
+  </g>
+</svg>
