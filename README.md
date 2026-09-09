@@ -4,17 +4,26 @@ An LLM inference engine written from scratch in Rust, compiled to WebAssembly,
 running a small language model entirely in the browser. No backend, no ML
 crates, no `ndarray` — the forward pass is the project.
 
-**Status: all 15 build steps complete. It runs in a browser, a revisit is instant,
-you can watch it think, and you can see what quantisation actually did to the
-weights.**
+### → [dhanushkrishna4.github.io/Loom](https://dhanushkrishna4.github.io/Loom/)
+
+Open it, load the model once, and it runs from cache after that — offline
+included. Nothing is uploaded anywhere; the GGUF is parsed in the page.
+
+**Status: all 15 build steps complete and deployed.** It runs in a browser, a
+revisit is instant, you can watch it think, and you can see what quantisation
+actually did to the weights.
+
+To run it against your own build instead:
 
 ```
 $ tools/build_web.sh          # wasm-pack -> tsc -> vite -> dist/
 $ python3 tools/serve.py      # serves the repo root, so /models is reachable
 ```
 
-Load a GGUF, type a prompt, watch it stream. **18.1 tok/s in-browser**, and the
-same prompt produces byte-identical text to the native CLI — which is the payoff
+Load a GGUF, type a prompt, watch it stream. **18.1 tok/s in-browser** with the
+tab focused and the machine idle — 11.5 to 17.8 under the side-by-side benchmark
+further down, on a host that was swapping. The same prompt produces
+byte-identical text to the native CLI — which is the payoff
 for using libm on both targets rather than the host's intrinsics.
 
 The 469 MB model is cached in IndexedDB, so the second visit is **0.6 s from
@@ -32,7 +41,7 @@ pass agrees with PyTorch **layer by layer** on the same weights.
 ## Quick start
 
 ```bash
-cargo test                       # 159 tests in ~1s (127 need no model file)
+cargo test                       # 165 tests in ~1s, none need a model file
 cargo run -p nano-infer-cli -- help
 ```
 
@@ -766,7 +775,11 @@ Two measurement mistakes on the way to that table, both worth recording:
 
 ## Testing
 
-107 tests, none of which need a model file.
+165 tests, none of which need a model file, plus 12 opt-in ones that do:
+`cargo test --release -- --ignored` runs the layer-by-layer PyTorch
+comparison, golden generation, and the batched-prefill equivalence check
+against the real 469 MB model. They need `--release`; in a debug build the
+unfused forward pass is slow enough to look hung.
 
 **Ops** are checked in four layers: analytic values worked out by hand; an **f64
 oracle** in `ops::reference` (f64, not a second f32 copy, so it measures real
