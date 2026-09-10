@@ -14,7 +14,6 @@
    Light is a full, deliberate translation of it rather than an inversion. */
 :root {
   --bg:      #070b0d;
-  --surface: #0c1216;
   --card:    #0c1216;
   --raised:  #111a1f;
   --fg:      #e6efec;
@@ -47,7 +46,6 @@
 @media (prefers-color-scheme: light) {
   :root {
     --bg:      #f5f8f7;
-    --surface: #ffffff;
     --card:    #ffffff;
     --raised:  #eef3f2;
     --fg:      #0a1012;
@@ -647,8 +645,14 @@ footer {
 }
 
 /* Reveal on scroll, kept subtle and fully opt-out. */
-.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
-.reveal.in { opacity: 1; transform: none; }
+/* Content hidden by CSS and revealed by JS is a trap: if the module never
+   loads, everything below the hero stays invisible with no sign anything is
+   wrong. So the hidden state is opt-in -- `.js` is set by an inline script in
+   the head, before first paint, so there is no flash -- and `.reveal-all` is a
+   dead man's switch the same script arms if the module has not checked in. */
+.js .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+.js .reveal.in { opacity: 1; transform: none; }
+.reveal-all .reveal { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

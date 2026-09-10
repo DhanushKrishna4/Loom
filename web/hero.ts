@@ -152,6 +152,9 @@ export function startHero(canvas: HTMLCanvasElement): void {
 
 /** Fade sections in as they arrive. Silently does nothing if unsupported. */
 export function revealOnScroll(): void {
+  // Tells the head's dead man's switch that this module made it. Set first, so
+  // an exception further down still cancels the fallback rather than racing it.
+  (window as unknown as { __revealReady?: boolean }).__revealReady = true;
   const els = document.querySelectorAll<HTMLElement>('.reveal');
   if (!('IntersectionObserver' in window) || matchMedia('(prefers-reduced-motion: reduce)').matches) {
     els.forEach((e) => e.classList.add('in'));

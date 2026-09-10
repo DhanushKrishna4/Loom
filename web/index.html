@@ -36,6 +36,15 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png?v=1">
 <link rel="icon" href="favicon.ico?v=1" sizes="any">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png?v=1">
+<script>
+  // Before first paint: arm the reveal animation, and arm a fallback that undoes
+  // it if app.ts never checks in (a failed chunk, a browser that rejects the
+  // module). Without this the page would simply be blank below the hero.
+  document.documentElement.classList.add('js');
+  setTimeout(function () {
+    if (!window.__revealReady) document.documentElement.classList.add('reveal-all');
+  }, 2500);
+</script>
 <link rel="stylesheet" href="style.css">
 </head>
 
